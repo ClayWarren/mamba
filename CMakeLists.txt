@@ -8,6 +8,16 @@ cmake_minimum_required(VERSION 3.16)
 
 project(mamba)
 
+# cxx-compiler >=2 no longer injects LDFLAGS. GNU ld does not search -L for DT_NEEDED of linked
+# shared libraries; it needs -rpath-link at link time.
+if(
+    UNIX
+    AND NOT APPLE
+    AND DEFINED ENV{CONDA_PREFIX}
+)
+    add_link_options("-Wl,-rpath-link,$ENV{CONDA_PREFIX}/lib")
+endif()
+
 # Build options
 # =============
 
