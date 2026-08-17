@@ -141,6 +141,10 @@ function(mamba_target_add_compile_warnings target)
         -Wlogical-op
         # Warn if you perform a cast to the same type
         -Wuseless-cast
+        # GCC 13+ false positives on std::variant of types containing std::string (libstdc++
+        # basic_string inlined through variant). Keep the warning, do not fail the build. See GCC PR
+        # 105329 / PR 109561.
+        -Wno-error=maybe-uninitialized
     )
 
     if(MSVC)

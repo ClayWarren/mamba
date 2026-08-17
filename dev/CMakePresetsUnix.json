@@ -3,9 +3,12 @@
     {
       "binaryDir": "${sourceDir}/build/${presetName}",
       "cacheVariables": {
+        "CMAKE_EXE_LINKER_FLAGS": "-L$env{CONDA_PREFIX}/lib",
         "CMAKE_INSTALL_LIBDIR": "lib",
         "CMAKE_INSTALL_PREFIX": "$env{CONDA_PREFIX}",
-        "CMAKE_PREFIX_PATH": "$env{CONDA_PREFIX}"
+        "CMAKE_MODULE_LINKER_FLAGS": "-L$env{CONDA_PREFIX}/lib",
+        "CMAKE_PREFIX_PATH": "$env{CONDA_PREFIX}",
+        "CMAKE_SHARED_LINKER_FLAGS": "-L$env{CONDA_PREFIX}/lib"
       },
       "description": "Base profile using conda libraries and compilers on Unix",
       "displayName": "Conda Unix",
