@@ -1,6 +1,35 @@
 {
   "configurePresets": [
     {
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "gcc",
+        "CMAKE_CXX_COMPILER": "g++",
+        "CMAKE_Fortran_COMPILER": "gfortran"
+      },
+      "condition": {
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux",
+        "type": "equals"
+      },
+      "description": "Unprefixed GNU compilers from cxx-compiler >=2 on Linux",
+      "hidden": true,
+      "name": "conda-unix-linux-compilers"
+    },
+    {
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "clang",
+        "CMAKE_CXX_COMPILER": "clang++"
+      },
+      "condition": {
+        "lhs": "${hostSystemName}",
+        "rhs": "Darwin",
+        "type": "equals"
+      },
+      "description": "Unprefixed Clang compilers from cxx-compiler >=2 on macOS",
+      "hidden": true,
+      "name": "conda-unix-darwin-compilers"
+    },
+    {
       "binaryDir": "${sourceDir}/build/${presetName}",
       "cacheVariables": {
         "CMAKE_INSTALL_LIBDIR": "lib",
@@ -10,15 +39,11 @@
       "description": "Base profile using conda libraries and compilers on Unix",
       "displayName": "Conda Unix",
       "hidden": true,
+      "inherits": ["conda-unix-linux-compilers", "conda-unix-darwin-compilers"],
       "name": "conda-unix"
     },
     {
-      "cacheVariables": {
-        "CMAKE_CXX_COMPILER": "g++",
-        "CMAKE_C_COMPILER": "gcc",
-        "CMAKE_Fortran_COMPILER": "gfortran"
-      },
-      "description": "Base profile using conda libraries and GNU compilers",
+      "description": "Base profile using conda libraries and host Unix compilers",
       "displayName": "Conda GNU",
       "hidden": true,
       "inherits": ["conda-unix"],
