@@ -190,6 +190,21 @@ jobs:
           $env:TEST_MAMBA_EXE = Join-Path -Path $pwd -ChildPath 'local\bin\mamba.exe'
           $env:MAMBA_TEST_SHELL_TYPE='powershell'
           Remove-Item -Path "env:CONDARC"
+          if ('${{ inputs.os }}' -eq 'windows-11-arm') {
+            $nativePrefix = Join-Path -Path $pwd -ChildPath 'win-arm64-smoke'
+            & $env:TEST_MAMBA_EXE create `
+              --prefix $nativePrefix `
+              --channel conda-forge `
+              --platform win-arm64 `
+              --yes --no-rc zlib
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+            # The suite intentionally exercises historical packages that do not
+            # exist in the new win-arm64 subdir. Keep testing the native binary
+            # against the mature Windows package inventory.
+            $env:MAMBA_PLATFORM='win-64'
+            $env:MAMBA_TEST_TARGET_PLATFORM='win-64'
+          }
           # Only rerun flaky tests on the `main` branch
           python -m pytest micromamba/tests/ `
             -vv --durations=50 `

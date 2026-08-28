@@ -90,9 +90,13 @@ def tmp_home(
 @pytest.fixture
 def tmp_clean_env(tmp_environ: None) -> None:
     """Remove all Conda/Mamba activation artifacts from environment."""
+    test_target_platform = os.environ.get("MAMBA_TEST_TARGET_PLATFORM")
     for k, v in os.environ.items():
         if k.startswith(("CONDA", "_CONDA", "MAMBA", "_MAMBA", "XDG_")):
             del os.environ[k]
+
+    if test_target_platform is not None:
+        os.environ["MAMBA_PLATFORM"] = test_target_platform
 
     def keep_in_path(p: str, prefix: Optional[str] = tmp_environ.get("CONDA_PREFIX")) -> bool:
         if "condabin" in p:
