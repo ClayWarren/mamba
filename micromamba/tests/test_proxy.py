@@ -66,6 +66,9 @@ class _ThreadingProxyServer(socketserver.ThreadingMixIn, socketserver.TCPServer)
         super().__init__(server_address, _ProxyRequestHandler)
         self.expected_auth = expected_auth
         self.upstream_overrides = upstream_overrides
+        self.tls_server_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        self.tls_server_context.load_cert_chain(_TEST_CERT, _TEST_KEY)
+        self.tls_client_context = ssl.create_default_context(cafile=_TEST_CERT)
         self._request_log = []
         self._request_log_lock = threading.Lock()
 
@@ -81,10 +84,10 @@ class _ThreadingProxyServer(socketserver.ThreadingMixIn, socketserver.TCPServer)
 class _ProxyRequestHandler(socketserver.BaseRequestHandler):
     _MAX_HEADER_SIZE = 64 * 1024
 
-    def _read_headers(self):
+    def _read_headers(self, connection, read_size=4096):
         data = b""
         while b"\r\n\r\n" not in data:
-            chunk = self.request.recv(4096)
+            chunk = connection.recv(read_size)
             if not chunk:
                 return None, None
             data += chunk
@@ -125,19 +128,46 @@ class _ProxyRequestHandler(socketserver.BaseRequestHandler):
                         return
                     key.data.sendall(data)
 
-    def _handle_connect(self, target, remainder):
+    @staticmethod
+    def _https_url(authority, target):
+        parsed = urllib.parse.urlsplit(target)
+        if parsed.scheme:
+            if parsed.scheme != "https" or parsed.hostname is None:
+                raise ValueError(f"Invalid absolute HTTPS proxy target: {target}")
+            return target
+        if not target.startswith("/"):
+            raise ValueError(f"Invalid HTTPS proxy target: {target}")
+        return f"https://{authority}{target}"
+
+    def _handle_connect(self, target):
+        parsed = urllib.parse.urlsplit(f"//{target}")
+        if parsed.hostname is None:
+            raise ValueError(f"Invalid CONNECT target: {target}")
         try:
-            upstream = self._open_upstream(target, 443)
+            raw_upstream = self._open_upstream(target, 443)
+            upstream = self.server.tls_client_context.wrap_socket(
+                raw_upstream, server_hostname=parsed.hostname
+            )
         except OSError:
             self._send_response("502 Bad Gateway", ("Content-Length: 0",))
             return
         with upstream:
             self.server.record_request("CONNECT", target.lower())
             self._send_response("200 Connection Established")
-            if remainder:
-                upstream.sendall(remainder)
             try:
-                self._relay(self.request, upstream)
+                with self.server.tls_server_context.wrap_socket(
+                    self.request, server_side=True
+                ) as client:
+                    raw_headers, remainder = self._read_headers(client)
+                    if raw_headers is None:
+                        return
+                    request_line = raw_headers.decode("iso-8859-1").split("\r\n", 1)[0]
+                    method, request_target, _ = request_line.split(" ", 2)
+                    self.server.record_request(
+                        method.upper(), self._https_url(target, request_target)
+                    )
+                    upstream.sendall(raw_headers + b"\r\n\r\n" + remainder)
+                    self._relay(client, upstream)
             except OSError:
                 pass
 
@@ -173,7 +203,9 @@ class _ProxyRequestHandler(socketserver.BaseRequestHandler):
 
     def handle(self):
         try:
-            raw_headers, remainder = self._read_headers()
+            # Do not consume a TLS ClientHello that follows the CONNECT headers: bytes read
+            # from the raw socket cannot be pushed back into an SSLSocket.
+            raw_headers, remainder = self._read_headers(self.request, read_size=1)
             if raw_headers is None:
                 return
             lines = raw_headers.decode("iso-8859-1").split("\r\n")
@@ -191,7 +223,7 @@ class _ProxyRequestHandler(socketserver.BaseRequestHandler):
                 )
                 return
             if method.upper() == "CONNECT":
-                self._handle_connect(target, remainder)
+                self._handle_connect(target)
             else:
                 self._handle_http(method, target, version, lines[1:], remainder)
         except ValueError:
@@ -218,14 +250,6 @@ class HttpConnectProxy:
     @property
     def requests(self):
         return self.server.request_log()
-
-
-def proxy_target(url):
-    parsed = urllib.parse.urlsplit(url)
-    if parsed.scheme == "https":
-        port = parsed.port or 443
-        return "CONNECT", f"{parsed.hostname}:{port}".lower()
-    return "GET", url
 
 
 @pytest.mark.parametrize("auth", [None, "foo:bar", "user%40example.com:pass"])
@@ -257,17 +281,18 @@ def test_proxy_install_exact_urls(tmp_home, tmp_prefix, monkeypatch, auth):
     assert proxy.requests
     assert res["actions"]["FETCH"]
     for fetch in res["actions"]["FETCH"]:
-        assert proxy_target(fetch["url"]) in proxy.requests
+        assert ("GET", fetch["url"]) in proxy.requests
 
 
 @pytest.mark.parametrize("auth", [None, "foo:bar", "user%40example.com:pass"])
 @pytest.mark.parametrize("ssl_verify", (True, False))
-def test_proxy_https_connect(tmp_home, tmp_prefix, monkeypatch, auth, ssl_verify):
+def test_proxy_https_exact_urls(tmp_home, tmp_prefix, monkeypatch, auth, ssl_verify):
     """
-    Test authenticated HTTPS tunnelling with a CA path and disabled verification.
+    Test authenticated HTTPS proxying with exact URLs and TLS verification options.
 
-    The reserved origin hostname is only resolvable through the proxy override, so a
-    successful install also proves that none of the HTTPS fetches bypassed the tunnel.
+    The proxy terminates TLS with the trusted test certificate, records each decrypted
+    request URL, and forwards it over TLS. The reserved origin hostname is only resolvable
+    through the proxy override, so a successful install also proves that HTTPS did not bypass it.
     """
     clear_proxy_environment(monkeypatch)
     expected_auth = urllib.parse.unquote(auth) if auth is not None else None
@@ -293,7 +318,7 @@ def test_proxy_https_connect(tmp_home, tmp_prefix, monkeypatch, auth, ssl_verify
     assert res["actions"]["FETCH"]
     for fetch in res["actions"]["FETCH"]:
         assert fetch["url"].startswith(origin.url)
-        assert proxy_target(fetch["url"]) in proxy.requests
+        assert ("GET", fetch["url"]) in proxy.requests
 
 
 def clear_proxy_environment(monkeypatch):
