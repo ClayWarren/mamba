@@ -23,6 +23,10 @@ _PROXY_ONLY_HOST = "mamba-proxy-test.invalid"
 
 
 class _StaticRepoHandler(http.server.SimpleHTTPRequestHandler):
+    # Keep one origin request per CONNECT tunnel; the proxy records that decrypted request
+    # before switching to byte relay.
+    protocol_version = "HTTP/1.0"
+
     def log_message(self, format, *args):
         pass
 
