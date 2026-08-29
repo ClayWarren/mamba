@@ -1,0 +1,17 @@
+name: Windows ARM64 integration probe
+
+on:
+  push:
+    branches:
+      - codex/pr-4383-ci-probe
+
+permissions:
+  contents: read
+
+jobs:
+  win_arm64:
+    name: Windows ARM64
+    uses: ./.github/workflows/windows_impl.yml
+    with:
+      os: windows-11-arm
+      build_type: release
