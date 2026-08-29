@@ -12,9 +12,11 @@ dependencies:
   # See: https://github.com/conda-forge/conda-forge.github.io/pull/2595
   - cxx-compiler
   - cmake >=3.16
-  - pkg-config # Used by some CMake dependencies
+  - sel(linux): pkg-config # Used by some CMake dependencies
+  - sel(osx): pkg-config # Used by some CMake dependencies
   - ninja
-  - make # not always present
+  - sel(linux): make # not always present
+  - sel(osx): make # not always present
   # libmamba dependencies
   - cpp-expected
   - fmt >=12.0.0
@@ -37,8 +39,6 @@ dependencies:
   - cli11 >=2.2
   # micromamba test dependencies
   - python
-  - mitmproxy
-  - bcrypt==4.0.1 # An indirect dependency pin due to failures on MacOS
   - pytest >=7.3.0
   - pytest-asyncio
   - pytest-timeout
@@ -65,7 +65,8 @@ dependencies:
   # dev dependencies
   - pre-commit
   # Documentation dependencies
-  - doxygen
+  - sel(linux): doxygen
+  - sel(osx): doxygen
   - breathe
   - sphinx
   - sphinx-book-theme

@@ -1,6 +1,6 @@
-# Allowed PE import DLLs for statically-linked micromamba on win-64.
+# Allowed PE import DLLs for statically-linked micromamba on Windows.
 # Source: conda-build overlinking allowlist (micromamba feedstock).
-# Format: dll_name<TAB>category<TAB>description
+# Format: dll_name<TAB>category<TAB>description<TAB>architectures (optional; defaults to all)
 # See also: https://github.com/mamba-org/mamba/issues/4276
 ADVAPI32.dll	Windows system	Advanced Windows 32 Base API (registry, services, security helpers).
 bcrypt.dll	Windows system	Windows Cryptographic Primitives (BCrypt) used for hashing and crypto.
@@ -27,4 +27,4 @@ api-ms-win-crt-time-l1-1-0.dll	UCRT (ucrt)	UCRT forwarder: time and date (time, 
 api-ms-win-crt-utility-l1-1-0.dll	UCRT (ucrt)	UCRT forwarder: utility routines (qsort, bsearch, system, …).
 MSVCP140.dll	MSVC runtime (vc14_runtime)	Microsoft C++ standard library runtime (/MD builds).
 VCRUNTIME140.dll	MSVC runtime (vc14_runtime)	Microsoft C runtime helpers (exceptions, EH scaffolding).
-VCRUNTIME140_1.dll	MSVC runtime (vc14_runtime)	Additional MSVC C++ exception-handling support on x64.
+VCRUNTIME140_1.dll	MSVC runtime (vc14_runtime)	Additional MSVC C++ exception-handling support on x64.	64

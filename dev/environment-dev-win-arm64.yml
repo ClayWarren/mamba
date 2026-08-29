@@ -1,7 +1,7 @@
 # Minimal development/CI environment for Windows ARM64.
 #
-# Many packages in environment-dev.yml are not yet built for win-arm64 on
-# conda-forge (including cxx-compiler and several test extras).
+# Some packages in environment-dev.yml are not yet built for win-arm64 on
+# conda-forge (including cxx-compiler and Python tooling).
 # Python 3.14 is currently the version available on this platform; see
 # conda-forge/mamba-feedstock#393.
 #
@@ -39,19 +39,22 @@ dependencies:
   - cli11 >=2.2
   # Python / test dependencies available on win-arm64.
   # Omitted vs environment-dev.yml until they (or their deps) are published:
-  # mitmproxy, bcrypt, pytest-xprocess, memory_profiler, pywin32,
-  # conda-content-trust, cryptography, mypy, pre-commit, and the Sphinx stack.
-  # Tests that need those packages skip; see https://github.com/mamba-org/mamba/issues/4393
+  # conda-content-trust, cryptography, and mypy.
+  # Track the remaining unified-environment work in https://github.com/mamba-org/mamba/issues/4393
   - python=3.14
   - pip
   - pytest >=7.3.0
   - pytest-asyncio
   - pytest-timeout
+  - pytest-xprocess
   - pytest-rerunfailures
   - pytest-cov
+  - memory_profiler
   - requests
+  - pywin32
   - menuinst
   - conda-package-handling
+  - zstandard
   - securesystemslib
   - pyyaml
   - packaging
@@ -60,3 +63,11 @@ dependencies:
   - pybind11>=3.0.0
   - setuptools
   - python-build
+  # dev dependencies
+  - pre-commit
+  # Documentation dependencies (Doxygen is Unix-only in environment-dev.yml)
+  - breathe
+  - sphinx
+  - sphinx-book-theme
+  - myst-parser
+  - sphinx-copybutton

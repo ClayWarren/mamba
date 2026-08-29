@@ -4,10 +4,10 @@ import platform
 import shutil
 import subprocess
 from pathlib import Path
-from packaging.version import Version
 
 import pytest
 import yaml
+from packaging.version import Version
 
 from . import helpers
 
@@ -2787,9 +2787,6 @@ def test_create_with_empty_lines_and_comments(tmp_home, tmp_root_prefix, tmp_pat
     # Non-regression test for:
     #  - https://github.com/mamba-org/mamba/issues/3289
     #  - https://github.com/mamba-org/mamba/issues/3659
-    # memory_profiler is omitted from the win-arm64 CI environment; packages
-    # needed to use environment-dev.yml on that platform are tracked in
-    # https://github.com/mamba-org/mamba/issues/4393
     memory_usage = pytest.importorskip("memory_profiler").memory_usage
     memory_limit = 150  # in MB
 
